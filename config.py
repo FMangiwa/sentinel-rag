@@ -19,7 +19,7 @@ class Config:
     FAST_LLM: str = "gpt-4o-mini"
     REASONING_LLM: str = "gpt-4o"
     RERANK_MODEL: str = "gpt-4o-mini"
-    EMBEDDING_MODEL: str = "text-embedding-3-large"
+    EMBEDDING_MODEL = "ChromaDB default embedding"
 
     # Multi-Tenant & RBAC Policy Rules
     # Defines role hierarchy and default dynamic dynamic filters
