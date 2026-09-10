@@ -30,10 +30,15 @@ class RAGSuiteEvaluator:
             output = self.pipeline.run(test["query"], sec_ctx)
 
             retrieved_ids = [c["id"] for c in output["contexts"]]
-            expected_ids = set(test.get("expected_doc_ids", []))
+            expected_sources = set(test.get("expected_sources", []))
 
-            mrr = calculate_mrr(retrieved_ids, expected_ids) if expected_ids else 1.0
-            ndcg = calculate_ndcg(retrieved_ids, expected_ids) if expected_ids else 1.0
+            retrieved_sources = [
+                c["metadata"].get("source_file", "")
+                for c in output["contexts"]
+            ]
+
+            mrr = calculate_mrr(retrieved_sources, expected_sources)
+            ndcg = calculate_ndcg(retrieved_sources, expected_sources)
             judge = llm_judge_faithfulness(output["answer"], output["contexts"])
 
             results.append(

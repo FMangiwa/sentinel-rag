@@ -25,11 +25,18 @@ def calculate_ndcg(
 ) -> float:
     """Calculates Normalized Discounted Cumulative Gain (nDCG@K)."""
     dcg = 0.0
-    for i, doc_id in enumerate(retrieved_ids[:k], start=1):
+    retrieved_unique = list(dict.fromkeys(retrieved_ids))
+
+    dcg = 0.0
+    for i, doc_id in enumerate(retrieved_unique[:k], start=1):
         rel = 1.0 if doc_id in ground_truth_ids else 0.0
         dcg += rel / math.log2(i + 1)
 
-    idcg = sum(1.0 / math.log2(i + 1) for i in range(1, min(len(ground_truth_ids), k) + 1))
+    ideal_relevant = min(len(ground_truth_ids), k)
+    idcg = sum(
+        1.0 / math.log2(i + 1)
+        for i in range(1, ideal_relevant + 1)
+    )
     return dcg / idcg if idcg > 0 else 0.0
 
 

@@ -102,8 +102,33 @@ def run_eval_benchmark(session_data):
         return warning_msg, json.dumps({"status": "403_Forbidden", "role": user_role}, indent=2)
 
     test_cases = [
-        {"query": "What is the Q3 financial performance?", "expected_doc_ids": [], "role": user_role},
+        {
+            "query": "How many employees does Insurellm have?",
+            "expected_sources": ["overview.md"],
+            "role": user_role,
+        },
+        {
+            "query": "What products does Insurellm offer?",
+            "expected_sources": ["overview.md"],
+            "role": user_role,
+        },
+        {
+            "query": "What is Bizllm?",
+            "expected_sources": ["Bizllm.md"],
+            "role": user_role,
+        },
+        {
+            "query": "What are the pricing tiers for Bizllm?",
+            "expected_sources": ["Bizllm.md"],
+            "role": user_role,
+        },
+        {
+            "query": "What is the history of Insurellm?",
+            "expected_sources": ["about.md"],
+            "role": user_role,
+        },
     ]
+
     results = evaluator.run_benchmark(test_cases)
     summary_md = f"### 📊 Benchmark Score: {results['summary']['mean_faithfulness']} / 1.0"
     return summary_md, json.dumps(results["details"], indent=2)
@@ -153,7 +178,7 @@ CSS = """
 }
 """
 
-with gr.Blocks(title="Enterprise Agentic RAG Platform", css=CSS, theme=gr.themes.Soft()) as demo:
+with gr.Blocks(title="Enterprise Agentic RAG Platform") as demo:
     session_state = gr.State(value={})
     pwd_is_secret = gr.State(value=True)
 
@@ -219,7 +244,7 @@ with gr.Blocks(title="Enterprise Agentic RAG Platform", css=CSS, theme=gr.themes
                         chatbot = gr.Chatbot(
                             label="Agent Conversation",
                             height=430,
-                            type="messages",
+                            # type="messages",
                             allow_tags=False,
                         )
                         with gr.Row():
@@ -304,5 +329,8 @@ with gr.Blocks(title="Enterprise Agentic RAG Platform", css=CSS, theme=gr.themes
         ],
     )
 
-if __name__ == "__main__":
-    demo.launch(inbrowser=True)
+demo.launch(
+    inbrowser=True,
+    css=CSS,
+    theme=gr.themes.Soft(),
+)
