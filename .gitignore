@@ -24,9 +24,6 @@ env/
 # Generated databases / indexes
 chroma_db/
 
-# Local / private project data
-data/
-
 # OS files
 .DS_Store
 Thumbs.db

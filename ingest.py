@@ -2,7 +2,7 @@ import os
 import re
 import glob
 import json
-import uuid
+import hashlib
 from typing import Any, Dict, List, Optional
 
 import chromadb
@@ -56,7 +56,14 @@ class MultiTenantIndexer:
         embeddings: Optional[List[List[float]]] = None,
     ) -> List[str]:
         """Adds documents with strict multi-tenant metadata tagging."""
-        ids = [str(uuid.uuid4()) for _ in texts]
+        ids = [
+            hashlib.sha256(
+                f"{metadatas[i].get('tenant_id', '')}|"
+                f"{metadatas[i].get('source_file', '')}|"
+                f"{i}|{text}".encode("utf-8")
+            ).hexdigest()[:32]
+            for i, text in enumerate(texts)
+        ]
 
         for meta in metadatas:
             if "tenant_id" not in meta or "classification" not in meta:
