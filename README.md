@@ -74,6 +74,20 @@ It demonstrates how an AI application can combine **role-based access control (R
                          └─────────────────┘
 ````
 
+## 🖥️ Application Screenshots
+
+### Login & Role-Based Access
+
+![Sentinel RAG Login](screenshots/login.png)
+
+### Agentic RAG Chat & Execution Trace
+
+![Sentinel RAG Chat](screenshots/chat.png)
+
+### System Evaluation
+
+![Sentinel RAG Evaluation](screenshots/evaluation.png)
+
 ---
 
 ## 🔐 Security Model
