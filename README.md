@@ -1,117 +1,419 @@
-```markdown
-# 🛡️ Sentinel RAG: Multi-Tenant Enterprise Agentic RAG Platform
+# 🛡️ Sentinel RAG
 
-**Sentinel RAG** is a security-first, multi-tenant Retrieval-Augmented Generation (RAG) platform built with Python and Gradio. It enforces role-based metadata access control (RBAC) and strict tenant boundaries at retrieval time—preventing unauthorized access and privilege escalation across corporate document hierarchies.
+## Security-Focused Multi-Tenant Agentic RAG
+
+Sentinel RAG is a security-focused Retrieval-Augmented Generation (RAG) application built with Python and Gradio.
+
+It demonstrates how an AI application can combine **role-based access control (RBAC), tenant isolation, hybrid retrieval, LLM reranking, agentic query processing, and automated evaluation** to provide controlled access to organizational knowledge.
+
+> **Portfolio project:** This is a technical prototype demonstrating enterprise-oriented RAG and security patterns. It is not presented as a production-ready enterprise security system.
 
 ---
 
-## 🌟 Key Features
+## ✨ What It Demonstrates
 
-* **Session-Based Authentication:** State-managed login UI (`gr.State`) featuring eye-toggle password inputs and compact session controls.
-* **Security-Enforced Retrieval:** Multi-tenant hybrid retrieval pipeline (ChromaDB dense search + BM25 keyword search + Reciprocal Rank Fusion + LiteLLM reranking) filtered dynamically via `SecurityContext`.
-* **Data-Level RBAC Enforcement:** Role-based access rules preventing unauthorized access to sensitive datasets:
-  * `employee`: Access to `products/` and `company/` directories.
-  * `executive`: Access to `products/`, `company/`, `contracts/`, and `employees/`.
-  * `admin`: Unrestricted retrieval across all directories + execution privileges for evaluation benchmarks.
-* **Execution Trace Inspector:** Full visual breakdown of retrieval scores, doc IDs, and routing logic per query.
-* **System Evaluation Benchmarks:** Built-in RAG suite evaluator (`RAGSuiteEvaluator`) assessing system faithfulness and retrieval precision.
+- 🔐 **Role-Based Access Control (RBAC)**
+- 🏢 **Multi-Tenant Data Isolation**
+- 🔎 **Hybrid Retrieval**
+  - ChromaDB dense retrieval
+  - BM25 keyword retrieval
+  - Reciprocal Rank Fusion (RRF)
+  - LLM-based reranking
+- 🤖 **Agentic RAG Pipeline**
+- 📊 **Retrieval Evaluation**
+  - MRR
+  - nDCG@4
+  - LLM-as-a-Judge faithfulness
+- 🧭 **Execution Trace Inspection**
+- 🔑 **Environment-Based Authentication Configuration**
+- 🗂️ **Reproducible Document Ingestion**
+- 🎨 **Gradio Web Interface**
+
+---
+
+## 🏗️ Architecture
+
+```text
+                         ┌─────────────────────┐
+                         │    Gradio Web UI    │
+                         └──────────┬──────────┘
+                                    │
+                                    ▼
+                         ┌─────────────────────┐
+                         │ Authentication /    │
+                         │ SecurityContext     │
+                         └──────────┬──────────┘
+                                    │
+                         Tenant + Role Filtering
+                                    │
+                                    ▼
+                    ┌──────────────────────────────┐
+                    │     Agentic RAG Pipeline     │
+                    └──────────────┬───────────────┘
+                                   │
+                                   ▼
+                 ┌──────────────────────────────────┐
+                 │        Hybrid Retrieval          │
+                 │                                  │
+                 │  ChromaDB Dense + BM25 Sparse    │
+                 │             ↓                    │
+                 │          RRF Fusion              │
+                 │             ↓                    │
+                 │       LLM Reranking              │
+                 └────────────────┬─────────────────┘
+                                  │
+                                  ▼
+                         ┌─────────────────┐
+                         │ Context + LLM   │
+                         │     Answer      │
+                         └────────┬────────┘
+                                  │
+                                  ▼
+                         ┌─────────────────┐
+                         │ Trace / Metrics │
+                         └─────────────────┘
+````
+
+---
+
+## 🔐 Security Model
+
+Documents are tagged with security metadata including:
+
+* `tenant_id`
+* `classification`
+* document category
+* source file
+
+Retrieval is performed through a `SecurityContext`, allowing the application to restrict which documents a user role can access.
+
+Example role model:
+
+| Role        | Example Access                                        |
+| ----------- | ----------------------------------------------------- |
+| `employee`  | Company and product knowledge                         |
+| `executive` | Company, products, contracts and employee information |
+| `admin`     | Unrestricted access + evaluation controls             |
+
+The important design principle is that authorization is applied **during retrieval**, rather than relying only on the LLM prompt to avoid exposing restricted information.
+
+---
+
+## 🔎 Retrieval Pipeline
+
+Sentinel RAG combines multiple retrieval techniques:
+
+```text
+User Query
+    │
+    ├──► Dense Retrieval ──► ChromaDB
+    │
+    └──► Sparse Retrieval ─► BM25
+                │
+                ▼
+        Reciprocal Rank Fusion
+                │
+                ▼
+         LLM Reranking
+                │
+                ▼
+        Authorized Context
+                │
+                ▼
+          Agentic Answer
+```
+
+This hybrid approach combines semantic retrieval with keyword matching before the final reranking stage.
+
+---
+
+## 🧪 Evaluation
+
+The project includes an automated evaluation suite covering retrieval and answer quality.
+
+Current baseline on the included synthetic InsureLLM benchmark:
+
+| Metric            |   Result |
+| ----------------- | -------: |
+| Mean MRR          | **1.00** |
+| Mean nDCG@4       | **1.00** |
+| Mean Faithfulness | **0.96** |
+| Test Cases        |    **5** |
+
+The benchmark currently evaluates questions against expected source files and uses an LLM judge to assess answer faithfulness.
+
+> These results are a small demonstration benchmark, not a claim of production-level RAG performance.
+
+---
+
+## 📊 Example Evaluation Queries
+
+The current benchmark includes questions such as:
+
+* How many employees does Insurellm have?
+* What products does Insurellm offer?
+* What is Bizllm?
+* What are the pricing tiers for Bizllm?
+* What is the history of Insurellm?
 
 ---
 
 ## 📁 Repository Structure
 
 ```text
-5_sentinel_RAG/
-├── Readme.md                   # Project documentation & setup guide
-├── requirements.txt            # Python dependencies (gradio, litellm, chromadb, etc.)
-├── app.py                      # Main Gradio dashboard
-├── config.py                   # Centralized application configurations
-├── ingest.py                   # Multi-tenant document indexer
+sentinel-rag/
+├── README.md
+├── requirements.txt
+├── .env.example
+├── .gitignore
+│
+├── app.py
+├── config.py
+├── ingest.py
+│
 ├── core/
-│   ├── security.py             # RBAC SecurityContext
-│   ├── auth.py                 # User authentication & credentials
-│   ├── retriever.py            # Hybrid RAG retriever (Dense + Sparse + RRF)
-│   └── agent.py                # Agentic execution pipeline
+│   ├── __init__.py
+│   ├── agent.py
+│   ├── auth.py
+│   ├── retriever.py
+│   └── security.py
+│
 ├── eval/
-│   ├── metrics.py              # Math metrics (MRR, nDCG) & LLM-as-a-Judge
-│   └── evaluator.py            # Benchmark suite runner
+│   ├── __init__.py
+│   ├── evaluator.py
+│   └── metrics.py
+│
 └── data/
-    └── InsureLLM/              # Active tenant storage directory
-        ├── company/            # Corporate policies & handbooks
-        ├── contracts/          # Client MSAs & vendor agreements
-        ├── employees/          # Executive compensation & payroll
-        └── products/           # Product specifications```
+    └── InsureLLM/
+        ├── company/
+        ├── contracts/
+        ├── employees/
+        └── products/
+```
+
+### Core components
+
+| File                | Purpose                                 |
+| ------------------- | --------------------------------------- |
+| `app.py`            | Gradio application and user interaction |
+| `config.py`         | Centralized configuration               |
+| `ingest.py`         | Document ingestion and indexing         |
+| `core/security.py`  | Tenant and role authorization           |
+| `core/auth.py`      | Demo authentication                     |
+| `core/retriever.py` | Hybrid retrieval and reranking          |
+| `core/agent.py`     | Agentic RAG execution                   |
+| `eval/metrics.py`   | MRR, nDCG and LLM evaluation            |
+| `eval/evaluator.py` | Benchmark suite execution               |
 
 ---
 
-## 🚀 Quickstart Guide
+## 🚀 Quick Start
 
-### 1. Prerequisites & Environment Setup
-
-Ensure you are running **Python 3.12+** and have your environment managed via `uv` or `venv`.
+### 1. Clone the repository
 
 ```bash
-# Clone the repository and navigate into the project root
-cd 5_sentinel_RAG
-
-# Create virtual environment and install dependencies
-uv venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-uv pip install -r requirements.txt
-
+git clone https://github.com/FMangiwa/sentinel-rag.git
+cd sentinel-rag
 ```
 
-### 2. Configure API Keys
+### 2. Create a virtual environment
 
-Set your target LLM provider API key in your environment variables:
+#### Windows
+
+```powershell
+py -m venv .venv
+.venv\Scripts\activate
+```
+
+#### macOS / Linux
 
 ```bash
-# OpenAI (Default)
-export OPENAI_API_KEY="your-openai-api-key"
-
-# Windows PowerShell
-$env:OPENAI_API_KEY="your-openai-api-key"
-
+python -m venv .venv
+source .venv/bin/activate
 ```
 
-### 3. Dataset & Index Vector Store
-
-Run ingestion:
-
-# Ingest and index documents into ChromaDB
-uv run ingest.py
-
-```
-
-### 4. Launch Application
-
-Start the web interface:
+### 3. Install dependencies
 
 ```bash
-uv run app.py
-
+pip install -r requirements.txt
 ```
 
-Access the UI locally at `http://127.0.0.1:7860`.
+### 4. Configure environment variables
+
+Copy `.env.example` to `.env` and provide your API key.
+
+#### Windows PowerShell
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Then edit `.env`:
+
+```text
+OPENAI_API_KEY=your-api-key
+```
+
+Do **not** commit `.env`.
+
+### 5. Build the local indexes
+
+```bash
+python ingest.py
+```
+
+This creates the local ChromaDB and BM25 indexes.
+
+The generated `chroma_db/` directory is intentionally excluded from Git because it can be recreated from the source dataset.
+
+### 6. Launch the application
+
+```bash
+python app.py
+```
+
+Open:
+
+```text
+http://127.0.0.1:7860
+```
 
 ---
 
-## 🔐 Default Test Credentials
+## 🧪 Running the Evaluation
 
-| Username | Password | Role | Tenant | Access |
-|---|---|---|---|---|
-| `alice` | Set via `DEMO_ADMIN_PASSWORD` | `admin` | `InsureLLM` | Unrestricted + System Evaluation Benchmarking |
-| `bob` | Set via `DEMO_EMPLOYEE_PASSWORD` | `employee` | `InsureLLM` | Products & Company knowledge only |
-| `carol` | Set via `DEMO_EXECUTIVE_PASSWORD` | `executive` | `InsureLLM` | All documents (Financials, Contracts, Payroll) |
+After launching the application, an administrator can access the evaluation functionality from the dashboard.
 
-> **Demo only:** Authentication credentials are configured through environment variables. This project demonstrates application-level tenant and role-based access controls; it is not intended to represent production-grade authentication.
+The evaluation pipeline measures:
+
+* Retrieval ranking
+* Source relevance
+* nDCG@4
+* Answer faithfulness
+
+The benchmark uses the source documents included in this repository.
 
 ---
 
-## 🧪 System Evaluation & Benchmarking
+## 🗃️ Dataset
 
-Admin users can run the automated evaluation suite via the **📈 System Evaluation** tab inside the dashboard. It measures retrieval faithfulness, chunk relevance, and guardrail enforcement against pre-defined ground-truth test cases.
+The repository includes an **InsureLLM synthetic demonstration corpus** containing fictional:
 
+* company information
+* products
+* contracts
+* employee profiles
+
+The dataset is included so the RAG pipeline can be reproduced without requiring external documents.
+
+**The data is fictional/synthetic and is not intended to represent a real organization or confidential client information.**
+
+---
+
+## 🔑 Authentication
+
+Authentication credentials are configured through environment variables.
+
+Example:
+
+```text
+DEMO_ADMIN_PASSWORD=change-me-admin
+DEMO_EMPLOYEE_PASSWORD=change-me-employee
+DEMO_EXECUTIVE_PASSWORD=change-me-executive
 ```
 
-```
+The included authentication system is intended for demonstration purposes.
+
+For a production system, authentication should be integrated with an appropriate identity provider and the authorization model should be enforced at the application/data layer.
+
+---
+
+## ⚙️ Configuration
+
+Important configuration values are centralized in `config.py`.
+
+Examples include:
+
+* LLM provider/model
+* embedding model
+* reranking model
+* Chroma persistence path
+* retrieval parameters
+* role permissions
+
+API credentials are loaded from environment variables rather than hard-coded into the source code.
+
+---
+
+## 🧠 Engineering Highlights
+
+This project demonstrates several patterns relevant to real-world AI engineering work:
+
+### Secure RAG
+
+Authorization is considered part of the retrieval pipeline rather than simply being expressed as an instruction to the LLM.
+
+### Hybrid Search
+
+Dense and sparse retrieval are combined to improve coverage across semantic and exact keyword matches.
+
+### Reranking
+
+Retrieved candidates are passed through an LLM-based reranking stage before being provided to the answer-generation pipeline.
+
+### Agentic RAG
+
+The system separates security context, retrieval, reasoning and answer generation into distinct components.
+
+### Evaluation
+
+The project includes deterministic retrieval metrics and an LLM-based faithfulness judge instead of relying solely on subjective manual testing.
+
+---
+
+## ⚠️ Limitations
+
+This project is a portfolio prototype.
+
+It does **not** claim to provide:
+
+* production-grade authentication
+* enterprise identity management
+* comprehensive penetration testing
+* formal security certification
+* production-scale infrastructure
+* guaranteed retrieval accuracy
+
+The security architecture demonstrates patterns that can be extended for production systems, but additional infrastructure, testing and security controls would be required.
+
+---
+
+## 🛠️ Technology Stack
+
+* **Python**
+* **Gradio**
+* **ChromaDB**
+* **BM25 / rank-bm25**
+* **LiteLLM**
+* **LLM-based reranking**
+* **Retrieval-Augmented Generation**
+* **Role-Based Access Control**
+* **Multi-Tenant Architecture**
+
+---
+
+## 👨‍💻 Portfolio Context
+
+Sentinel RAG was built as an AI engineering portfolio project focused on **secure enterprise-oriented RAG systems**.
+
+It demonstrates practical experience with:
+
+`RAG` · `Hybrid Search` · `RBAC` · `Multi-Tenancy` · `LLM Reranking` · `Agentic AI` · `Evaluation` · `Python`
+
+---
+
+## 📄 License
+
+See `LICENSE`.
+
+````
